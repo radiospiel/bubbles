@@ -24,6 +24,7 @@ type Model struct {
 	start                  int
 	end                    int
 	updateViewportDisabled bool
+	firstColumn            int
 }
 
 // Row represents one line in the table.
@@ -46,6 +47,8 @@ type KeyMap struct {
 	HalfPageDown key.Binding
 	GotoTop      key.Binding
 	GotoBottom   key.Binding
+	ColumnLeft   key.Binding
+	ColumnRight  key.Binding
 }
 
 // ShortHelp implements the KeyMap interface.
@@ -96,6 +99,14 @@ func DefaultKeyMap() KeyMap {
 		GotoBottom: key.NewBinding(
 			key.WithKeys("end", "G"),
 			key.WithHelp("G/end", "go to end"),
+		),
+		ColumnLeft: key.NewBinding(
+			key.WithKeys("left"),
+			key.WithHelp("left", "move one column left"),
+		),
+		ColumnRight: key.NewBinding(
+			key.WithKeys("right"),
+			key.WithHelp("right", "move one column right"),
 		),
 	}
 }
@@ -223,6 +234,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.GotoTop()
 		case key.Matches(msg, m.KeyMap.GotoBottom):
 			m.GotoBottom()
+		case key.Matches(msg, m.KeyMap.ColumnLeft):
+			m.MoveColumnLeft(1)
+		case key.Matches(msg, m.KeyMap.ColumnRight):
+			m.MoveColumnRight(1)
 		}
 	}
 
@@ -376,6 +391,16 @@ func (m *Model) MoveDown(n int) {
 	}
 }
 
+func (m *Model) MoveColumnLeft(n int) {
+	m.firstColumn = clamp(m.firstColumn-1, 0, len(m.cols)-1)
+	m.UpdateViewport()
+}
+
+func (m *Model) MoveColumnRight(n int) {
+	m.firstColumn = clamp(m.firstColumn+1, 0, len(m.cols)-1)
+	m.UpdateViewport()
+}
+
 // GotoTop moves the selection to the first row.
 func (m *Model) GotoTop() {
 	m.MoveUp(m.cursor)
@@ -404,7 +429,10 @@ func (m *Model) FromValues(value, separator string) {
 
 func (m Model) headersView() string {
 	var s = make([]string, 0, len(m.cols))
-	for _, col := range m.cols {
+	for i, col := range m.cols {
+		if i < m.firstColumn {
+			continue
+		}
 		if col.Width <= 0 {
 			continue
 		}
@@ -418,6 +446,9 @@ func (m Model) headersView() string {
 func (m *Model) renderRow(rowID int) string {
 	var s = make([]string, 0, len(m.cols))
 	for i, value := range m.rows[rowID] {
+		if i < m.firstColumn {
+			continue
+		}
 		if m.cols[i].Width <= 0 {
 			continue
 		}
