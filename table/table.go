@@ -20,9 +20,10 @@ type Model struct {
 	focus  bool
 	styles Styles
 
-	viewport viewport.Model
-	start    int
-	end      int
+	viewport               viewport.Model
+	start                  int
+	end                    int
+	updateViewportDisabled bool
 }
 
 // Row represents one line in the table.
@@ -254,6 +255,10 @@ func (m Model) View() string {
 // UpdateViewport updates the list content based on the previously defined
 // columns and rows.
 func (m *Model) UpdateViewport() {
+	if m.updateViewportDisabled {
+		return
+	}
+
 	renderedRows := make([]string, 0, len(m.rows))
 
 	// Render only rows from: m.cursor-m.viewport.Height to: m.cursor+m.viewport.Height
@@ -428,6 +433,13 @@ func (m *Model) renderRow(rowID int) string {
 	}
 
 	return row
+}
+
+func (m *Model) DisableUpdateViewport(callback func()) {
+	m.updateViewportDisabled = true
+	callback()
+	m.updateViewportDisabled = false
+	m.UpdateViewport()
 }
 
 func max(a, b int) int {
