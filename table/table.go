@@ -466,11 +466,13 @@ func (m *Model) renderRow(rowID int) string {
 	return row
 }
 
-func (m *Model) DisableUpdateViewport(callback func()) {
+func (m *Model) WithoutUpdateViewport(callback func()) {
 	m.updateViewportDisabled = true
+	defer func() {
+		m.updateViewportDisabled = false
+		m.UpdateViewport()
+	}()
 	callback()
-	m.updateViewportDisabled = false
-	m.UpdateViewport()
 }
 
 func max(a, b int) int {
