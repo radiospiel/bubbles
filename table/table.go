@@ -25,6 +25,7 @@ type Model struct {
 	end                    int
 	updateViewportDisabled bool
 	firstColumn            int
+	wordWrapDisabled       bool
 }
 
 // Row represents one line in the table.
@@ -145,8 +146,9 @@ func New(opts ...Option) Model {
 		cursor:   0,
 		viewport: viewport.New(0, 20),
 
-		KeyMap: DefaultKeyMap(),
-		styles: DefaultStyles(),
+		KeyMap:           DefaultKeyMap(),
+		styles:           DefaultStyles(),
+		wordWrapDisabled: true,
 	}
 
 	for _, opt := range opts {
@@ -458,6 +460,15 @@ func (m *Model) renderRow(rowID int) string {
 	}
 
 	row := lipgloss.JoinHorizontal(lipgloss.Left, s...)
+
+	// TODO: This implementation truncates the row to the width available via m.Width().
+	//  It should disable wrapping the entire row, which otherwise occurs if a length of a rendered row exceeds
+	//  the available width.
+	//  This workaround here works well if each cell is rendered in a single line; ideally we need
+	//  to split the row into multiple lines, and truncate each of those lines individually.
+	if m.wordWrapDisabled {
+		row = runewidth.Truncate(row, m.Width(), "")
+	}
 
 	if rowID == m.cursor {
 		return m.styles.Selected.Render(row)
